@@ -5,44 +5,51 @@
 #include <unistd.h>
 #include <string.h>
 
-#define LOOPS 3
+#define LOOPS 2
 
 int number = 1, count = 0;
 int children[4] = {0};
 int root;
 int forexit = 0;
+int last;
 
 void handler1(int sig)
 {
-	printf("Process %d / %d got signal SIGUSR1 %d\n", number, getpid(), clock());
+	printf("Process %d / %d got signal SIGUSR1 from process %d %d\n", number, getpid(), number==1 ? last : getppid(), clock());
 	sleep(0.1);
 	switch (number)
 	{
 	case 8:
 		kill(root, SIGUSR1);
+		printf("Process %d / %d sent signal SIGUSR1 to process %d %d\n", number, getpid(), root, clock());
 		break;
 	case 1:
 	if (forexit++ < LOOPS)
 			for (int i = 0; i<4; ++i)
-				kill(children[i], SIGUSR2); 
+			{
+				kill(children[i], SIGUSR2);
+				printf("Process %d / %d sent signal SIGUSR2 to process %d %d\n", number, getpid(), children[i], clock()); 
+			}
 	else 
 		{
 			int stat;
 			for (int i= 0; i<4; ++i)
 			wait(&stat);
 		}
+	break;
 	}	
 }
 
 void handler2(int sig)
 {
-	printf("Process %d / %d got signal SIGUSR2 %d\n", number, getpid(), clock());
+	printf("Process %d / %d got signal SIGUSR2 from process %d %d\n", number, getpid(), getppid(), clock());
 	switch (number)
 	{
 	case 5:
 		break;
 	case 2:case 3:case 4:
 		kill(children[0], SIGUSR1);
+		printf("Process %d / %d sent signal SIGUSR1 to process %d %d\n", number, getpid(), children[0], clock());
 		break;
 	} 
 }
@@ -57,6 +64,7 @@ int main(int argc, char* argv[])
 			children[count++] = temp;
 		else
 		{
+			
 			number += count + 1;
 			count = 0;
 		}
@@ -79,7 +87,10 @@ int main(int argc, char* argv[])
 		if (temp = fork())
 			children[0] = temp;
 		else
+		{
+			last = getpid();
 			number = 8;
+		}
 		break;
 	}
 	struct sigaction act;
@@ -88,13 +99,11 @@ int main(int argc, char* argv[])
 	sigaction(SIGUSR1, &act, 0);
 	act.sa_handler = handler2;
 	sigaction(SIGUSR2, &act, 0);
-	sleep(0.1);
-	//printf("\n%d / %d /", number, getpid());
-	//if (count > 0)
-		//for (int i = 0; i < count; ++i)
-			//printf(" %d,", children[i]); 
 	if (number == 1)
-	   kill(getpid(), SIGUSR1);
+	{
+		system("ps fax");
+		//kill(getppid(), SIGUSR1);
+	}
 	int i = 0;
 	while (i++ <= LOOPS)
 		sleep(1);
