@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 	if (number == 1)
 	{
 		system("ps fax");
-		//kill(getppid(), SIGUSR1);
+		kill(root, SIGUSR1);
 	}
 	int i = 0;
 	while (i++ <= LOOPS)
